@@ -144,14 +144,14 @@ function Header() {
             <FeatureIcon />
             درخواست‌ها
           </Link>
-          <Link
+          {/* <Link
             href="/changelog"
             className="flex font-thin items-center gap-x-1"
             style={{ color: pathname === "/changelog" ? "#03A9F4" : "#ccc" }}
           >
             <ChangeLogIcon />
             تاریخچه‌تغییرات
-          </Link>
+          </Link> */}
         </div>
       </header>
       <div className="w-full h-[1px] bg-[#e4e2e422]" />
