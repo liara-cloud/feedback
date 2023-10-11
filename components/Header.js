@@ -9,6 +9,7 @@ import {
   RoadmapIcon,
   FeatureIcon
 } from "./svgs/header";
+import createRandomHexColor from "@/utils/createRandomColor";
 
 const pb = new PocketBase("https://feedback.iran.liara.run/");
 
@@ -23,9 +24,12 @@ function Header() {
     setIsLoading(true);
     if (typeof window !== "undefined") {
       const pb_auth = window.localStorage.getItem("pocketbase_auth");
-      const model = JSON.parse(pb_auth).model;
 
-      setMetadata({ email: model.email });
+      if (!pb_auth) return setIsLoading(false);
+
+      const model = JSON.parse(pb_auth)?.model;
+
+      setMetadata({ email: model.email, color: model.color });
     }
     setIsLoading(false);
   }, []);
@@ -37,8 +41,16 @@ function Header() {
         .collection("users")
         .authWithOAuth2({ provider: "google" });
 
+
+      if (!authData.record.color) {
+        const data = {
+          color: createRandomHexColor()
+        };
+        await pb.collection("users").update(authData.record.id, data);
+      }
+
       if (pb.authStore.isValid) {
-        setMetadata(authData.meta);
+        setMetadata(authData.record);
         setIsValidLogin(pb.authStore.isValid);
         setIsLoading(false);
       }
@@ -64,7 +76,7 @@ function Header() {
 
   return (
     <Fragment>
-      <header dir="rtl" className="mx-auto relative max-w-4xl py-5">
+      <header dir="rtl" className="mx-auto relative max-w-4xl px-5 md:px-0 py-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-x-2">
             <img src="/liara.svg" width={70} />
@@ -76,10 +88,10 @@ function Header() {
                 className="w-full h-full t-0 left-0 fixed z-[0]"
                 onClick={handleCloseMenu}
               />
-              <div className="absolute border z-10 border-[#e4e2e415] bg-[#e4e2e409] rounded-lg w-[110px] p-2 top-[50px] left-[100px]">
+              <div className="absolute border z-10 border-[#e4e2e415] bg-[#222832] rounded-lg w-[110px] p-2 top-[50px] left-[20px]">
                 <ul className="text-[#ccc] text-sm">
                   <li className="border-b pb-1 cursor-pointer hover:opacity-80 transition border-b-[#cccccc22]">
-                    تنظیمات
+                    <Link href="/settings">ویرایش</Link>
                   </li>
                   <li
                     onClick={handleLogout}
@@ -96,20 +108,10 @@ function Header() {
                 <div
                   onClick={handleShowMenu}
                   dir="ltr"
-                  className="h-[35px] flex gap-2 items-center cursor-pointer transition hover:opacity-80"
+                  className="h-[35px] flex gap-1 items-center cursor-pointer transition hover:opacity-80"
                 >
-                  <div
-                    className="w-[35px] h-[35px] flex items-center justify-center text-white rounded-full"
-                    style={{
-                      background:
-                        "linear-gradient(124deg, #9C27B0 0%, #00BCD4 98.77%)"
-                    }}
-                  >
-                    {metadata.email.slice(0, 1).toLocaleUpperCase()}
-                  </div>
-
                   <p className="text-[#ccc] font-light text-sm">
-                    {metadata.email}
+                    حساب‌کاربری
                   </p>
                   <ArrowIcon />
                 </div>
@@ -118,7 +120,7 @@ function Header() {
                 <button
                   onClick={handleLoginWithGoogle}
                   style={{ opacity: isLoading ? 0.3 : 1 }}
-                  className="flex items-center text-[#ccc] border-[#e4e2e422] text-sm gap-x-2 py-2 px-3 border  mt-3 rounded-md transition hover:border-[#e4e2e444] cursor-pointer"
+                  className="flex items-center text-[#ccc] border-[#e4e2e422] text-sm gap-x-2 py-2 px-3 border  md:mt-3 rounded-md transition hover:border-[#e4e2e444] cursor-pointer"
                 >
                   <GoogleIcon />
                   ورود‌ به حساب‌کاربری

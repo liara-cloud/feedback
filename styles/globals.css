@@ -62,3 +62,9 @@ body {
   font-family: Yekan Bakh;
   background: #181818;
 }
+
+.Toastify__toast.Toastify__toast-theme--dark {
+  font-family: Yekan Bakh !important;
+  background-color: #e4e2e409 !important;
+  border: 1px solid #e4e2e415 !important;
+}
