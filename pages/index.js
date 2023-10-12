@@ -196,7 +196,7 @@ const features = () => {
               </div>
             </form>
           </div>
-          <div className="md:w-2/3 mt-10 md:mt-0">
+          <div className="md:w-2/3 mt-20 md:mt-0">
             {isLoadingGetfeatures &&
               new Array(8).fill(0).map(() => <FeatureSkeleton />)}
 

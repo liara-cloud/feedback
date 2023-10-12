@@ -137,7 +137,7 @@ function Header() {
             مسیر
           </Link> */}
           <Link
-            href="/features"
+            href="/"
             className="flex font-thin text-white items-center gap-x-1"
             // style={{ color: pathname.includes("features") ? "#03A9F4" : "#ccc" }}
           >
