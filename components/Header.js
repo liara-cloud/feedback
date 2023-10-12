@@ -5,8 +5,8 @@ import PocketBase from "pocketbase";
 import {
   ArrowIcon,
   ChangeLogIcon,
-  GoogleIcon,
   RoadmapIcon,
+  GoogleIcon,
   FeatureIcon
 } from "./svgs/header";
 import createRandomHexColor from "@/utils/createRandomColor";
@@ -128,18 +128,18 @@ function Header() {
               </div>}
         </div>
         <div className="flex gap-x-5 mt-6">
-          <Link
+          {/* <Link
             href="/"
             className="font-thin flex items-center gap-x-1"
             style={{ color: pathname === "/" ? "#03A9F4" : "#ccc" }}
           >
             <RoadmapIcon />
             مسیر
-          </Link>
+          </Link> */}
           <Link
             href="/features"
-            className="flex font-thin items-center gap-x-1"
-            style={{ color: pathname === "/features" ? "#03A9F4" : "#ccc" }}
+            className="flex font-thin text-white items-center gap-x-1"
+            // style={{ color: pathname.includes("features") ? "#03A9F4" : "#ccc" }}
           >
             <FeatureIcon />
             درخواست‌ها

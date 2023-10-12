@@ -42,8 +42,8 @@ const Settings = () => {
     };
     
     try {
-        const record = await pb.collection('users').update(metadata.id, data);
-        
+      await pb.collection('users').update(metadata.id, data);
+      toast("ویرایش با موفقیت ثبت شد.") 
     } catch (error) {
         toast("ویرایش با خطا مواجه شد.")
     }
@@ -102,10 +102,10 @@ const Settings = () => {
                 style={{
                   background:
                     "linear-gradient(92deg, rgb(135, 252, 196) 0%, rgb(40, 193, 245) 98.77%)",
-                  opacity: isLoading ? 0.2 : 1
+                  opacity: isLoadingSubmit ? 0.2 : 1
                 }}
               >
-                {isLoading ? "درحال ثبت..." : "ثبت"}
+                {isLoadingSubmit ? "...درحال ثبت" : "ثبت"}
               </button>
             </div>
           </div>
