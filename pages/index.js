@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import FeatureSkeleton from "@/components/FeatureSkeleton";
 import TextField from "@/components/TextField";
 import { GoogleIcon } from "@/components/svgs/header";
+import isImageFile from "@/utils/isImageFile";
 
 const pb = new PocketBase("https://feedback.iran.liara.run");
 
@@ -16,8 +17,6 @@ const initForm = {
   attachment: undefined
 };
 
-//  TODO: HANDLE UPLOAD PNG AND JPG FILE
-
 const features = () => {
   const [form, setForm] = useState(initForm);
   const [isLoading, setIsLoading] = useState(false);
@@ -25,7 +24,6 @@ const features = () => {
   const [votes, setVotes] = useState({});
 
   const [features, setFeatures] = useState([]);
-
 
   const isLogin = () => {
     if (typeof window === "undefined") return;
@@ -112,6 +110,11 @@ const features = () => {
 
     const { title, content, attachment } = form;
 
+
+    if(!isImageFile(attachment)) {
+      return toast("فرمت فایل نادرست است.")
+    }
+
     const user =
       typeof window !== "undefined" &&
       JSON.parse(localStorage.getItem("pocketbase_auth")).model.id;
@@ -144,7 +147,6 @@ const features = () => {
       <main dir="rtl" className="mb-16 mx-auto max-w-4xl">
         <div className="md:flex mt-10 px-7 md:px-0 relative text-sm font-thin gap-x-8">
           <div className="md:w-1/3 relative md:sticky top-10 h-[max-content] text-[#ccc] border border-[#e4e2e415] bg-[#e4e2e409] rounded-lg p-5">
-
             <h3 className="text-white mb-2">یک ویژگی را پیشنهاد کنید</h3>
             <p className="text-xs text-[#a1a1a1] mb-4">
               لورم ایپسوم متن ساختگی است با تولید سادگی نامفهوم از صنعت چاپ

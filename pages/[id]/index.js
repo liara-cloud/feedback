@@ -37,7 +37,7 @@ const index = () => {
         setAttachment(attachment);
       }
     } catch (error) {
-      // TODO: HANDLE CATCH
+      toast("خطا در دریافت اطلاعات")
     }
     setIsLoading(false);
   };
@@ -135,7 +135,7 @@ const index = () => {
 
       setComments(resultList.items);
     } catch (error) {
-      // TODO: HANDLE CATCH
+      toast("خطا در دریافت اطلاعات")
     }
   };
 
