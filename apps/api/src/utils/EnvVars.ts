@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import envVar from "env-var";
 import path from "path";
 
-dotenv.config({ path: path.resolve(__dirname, "../../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../../../../.env") });
 
 export class EnvVars {
   public static CLIENT_ID = envVar.get("CLIENT_ID").required().asString();
