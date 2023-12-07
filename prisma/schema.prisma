@@ -26,7 +26,7 @@ model Feedbacks {
   title         String
   description   String
   attachmentUrl String?
-  createdAt     String
+  createdAt     DateTime   @default(now())
   user          Users      @relation(fields: [userId], references: [id], onDelete: Cascade)
   comments      Comments[]
   votes         Votes[]
@@ -37,7 +37,7 @@ model Comments {
   userId     String
   feedbackId String
   content    String
-  createdAt  String
+  createdAt  DateTime  @default(now())
   user       Users     @relation(fields: [userId], references: [id], onDelete: Cascade)
   feedback   Feedbacks @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
 }
