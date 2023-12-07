@@ -2,6 +2,7 @@ import { Express } from "express";
 import passport from "passport";
 import { Profile, Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { EnvVars } from "../EnvVars";
+import prisma from "../prisma";
 
 export const initPassport = (app: Express) => {
   app.use(passport.initialize());
@@ -11,8 +12,19 @@ export const initPassport = (app: Express) => {
     clientID: EnvVars.CLIENT_ID,
     clientSecret: EnvVars.CLIENT_SECRET,
     callbackURL: `/login/callback`
-  }, (accessToken, refreshToken, profile, done) => {
-    return done(null, profile);
+  }, async (_accessToken, _refreshToken, profile, done) => {
+    const user = await prisma.users.upsert({
+      where: {
+        email: profile._json.email!,
+      },
+      create: {
+        email: profile._json.email!,
+        name: profile.displayName,
+        color: "#FFF",
+      },
+      update: {}
+    });
+    return done(null, { id: user.id });
   }));
   
   passport.serializeUser((user, done) => {
@@ -20,6 +32,6 @@ export const initPassport = (app: Express) => {
   });
   
   passport.deserializeUser((user, done) => {
-    return done(null, user as Profile);
+    return done(null, user as { id: string });
   });
 };
