@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 import passport from 'passport';
 import jsonwebtoken from "jsonwebtoken";
 import { EnvVars } from "./utils/EnvVars";
@@ -7,11 +7,19 @@ import { initPassport } from "./utils/initServer/initPassport";
 import { initJwt } from "./utils/initServer/initJwt";
 import prisma from "./utils/prisma";
 import multer from "multer";
-import { GetObjectCommand, PutObjectAclCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import path from "path";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { exclude } from "./utils/exclude";
 import { setCountKey } from "./utils/setCountKey";
+import { zBodyParse } from "./utils/zBodyParse";
+
+import "express-async-errors";
+import { ZodError } from "zod";
+import { postCommentSchema } from "./schemas/postCommentSchema";
+import { postVoteSchema } from "./schemas/postVoteSchema";
+import { updateUserSchema } from "./schemas/updateUserSchema";
+import { postFeedbackSchema } from "./schemas/postFeedbackSchema";
 
 declare global {
   namespace Express {
@@ -53,6 +61,9 @@ app.get("/feedbacks", async (req, res) => {
           votes: true
         }
       }
+    },
+    orderBy: {
+      createdAt: "desc"
     }
   });
   return res.json(
@@ -67,10 +78,8 @@ app.get("/feedbacks", async (req, res) => {
 app.post("/feedbacks", [
   passport.authenticate("jwt", { session: false }),
   upload.single("attachment")
-], async (req: Request<{}, {}, {
-  title: string;
-  description: string;
-}>, res: Response) => {
+], async (req: Request, res: Response) => {
+  const { title, description } = await zBodyParse(postFeedbackSchema, req);
   let fileUrl: string | undefined = undefined;
   if (req.file) {
     const name = path.parse(req.file.originalname);
@@ -96,8 +105,8 @@ app.post("/feedbacks", [
   await prisma.feedbacks.create({
     data: {
       userId: req.user?.id!,
-      title: req.body.title,
-      description: req.body.description,
+      title,
+      description,
       attachmentUrl: fileUrl,
     }
   })
@@ -125,6 +134,9 @@ app.get("/feedbacks/:feedbackId", async (req, res) => {
               color: true
             }
           },
+        },
+        orderBy: {
+          createdAt: "desc"
         }
       },
       _count: {
@@ -138,34 +150,31 @@ app.get("/feedbacks/:feedbackId", async (req, res) => {
   const comments = unExcludedComments.map(comment => exclude(comment, ["userId", "feedbackId"]))
   return res.json(
     {
-      ...rest,
+      ...exclude(rest, ["userId"]),
       comments
     }
   )
 });
 
-app.post("/comment", passport.authenticate("jwt", { session: true }), async (req: Request<{}, {}, {
-  feedbackId: string,
-  content: string
-}>, res) => {
+app.post("/comment", passport.authenticate("jwt", { session: true }), async (req, res) => {
+  const { feedbackId, content } = await zBodyParse(postCommentSchema, req);
   await prisma.comments.create({
     data: {
       userId: req.user?.id!,
-      feedbackId: req.body.feedbackId,
-      content: req.body.content
+      feedbackId,
+      content
     }
   });
   return res.json("comment posted");
 });
 
-app.post("/vote", passport.authenticate("jwt", { session: true }), async (req: Request<{}, {}, {
-  feedbackId: string
-}>, res) => {
+app.post("/vote", passport.authenticate("jwt", { session: true }), async (req, res) => {
+  const { feedbackId } = await zBodyParse(postVoteSchema, req);
   // check for uniqueness
   await prisma.votes.create({
     data: {
       userId: req.user?.id!,
-      feedbackId: req.body.feedbackId
+      feedbackId
     }
   });
   return res.json("vote casted");
@@ -179,20 +188,28 @@ app.get("/me", passport.authenticate("jwt", { session: true }), async (req, res)
   }));
 });
 
-app.post("/me", passport.authenticate("jwt", { session: true }), async (req: Request<{}, {}, {
-  name: string,
-  color: string
-}>, res) => {
+app.post("/me", passport.authenticate("jwt", { session: true }), async (req, res) => {
+  const { name, color } = await zBodyParse(updateUserSchema, req);
   await prisma.users.update({
     where: {
       id: req.user?.id!
     },
     data: {
-      name: req.body.name,
-      color: req.body.color
+      name,
+      color
     }
   });
   return res.json("profile updated");
+});
+
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof ZodError) {
+    const firstError = err.errors[0];
+    const { path, message } = firstError;
+    res.status(400).json(`${path.join()}: ${message}.`);
+  } else
+    res.status(500).json("something went wrong.");
+  return next();
 });
 
 app.listen(EnvVars.PORT || 3000, () => {
