@@ -10,6 +10,8 @@ import multer from "multer";
 import { GetObjectCommand, PutObjectAclCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import path from "path";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { exclude } from "./utils/exclude";
+import { setCountKey } from "./utils/setCountKey";
 
 declare global {
   namespace Express {
@@ -20,6 +22,7 @@ declare global {
 }
 
 const app = express();
+app.use(express.json())
 initSession(app);
 initPassport(app);
 initJwt(app);
@@ -38,10 +41,7 @@ app.get("/login/callback",
 app.get("/feedbacks", async (req, res) => {
   // https://medium.com/@aliammariraq/prisma-exclude-with-typesafety-8484ea6d0c42
   const feedbacks = await prisma.feedbacks.findMany({
-    select: {
-      id: true,
-      title: true,
-      description: true,
+    include: {
       user: {
         select: {
           name: true,
@@ -56,7 +56,10 @@ app.get("/feedbacks", async (req, res) => {
     }
   });
   return res.json(
-    feedbacks
+    feedbacks.map(feedback => {
+      const excluded = exclude(feedback, ["attachmentUrl", "userId"]);
+      return setCountKey(excluded, "votes");
+    })
   );
 });
 
@@ -103,43 +106,41 @@ app.post("/feedbacks", [
 
 // guard against the existence of the feedback
 app.get("/feedbacks/:feedbackId", async (req, res) => {
-  return res.json(
-    prisma.feedbacks.findUnique({
-      where: {
-        id: req.params.feedbackId
+  const feedback = await prisma.feedbacks.findUnique({
+    where: {
+      id: req.params.feedbackId
+    },
+    include: {
+      user: {
+        select: {
+          name: true,
+          color: true
+        }
       },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        createdAt: true,
-        user: {
-          select: {
-            name: true,
-            color: true
-          }
-        },
-        comments: {
-          select: {
-            id: true,
-            feedbackId: true,
-            content: true,
-            createdAt: true,
-            user: {
-              select: {
-                name: true,
-                color: true
-              }
-            },
-          }
-        },
-        _count: {
-          select: {
-            votes: true
-          }
+      comments: {
+        include: {
+          user: {
+            select: {
+              name: true,
+              color: true
+            }
+          },
+        }
+      },
+      _count: {
+        select: {
+          votes: true
         }
       }
-    })
+    }
+  });
+  const { comments: unExcludedComments, ...rest } = setCountKey(feedback!, "votes");
+  const comments = unExcludedComments.map(comment => exclude(comment, ["userId", "feedbackId"]))
+  return res.json(
+    {
+      ...rest,
+      comments
+    }
   )
 });
 
