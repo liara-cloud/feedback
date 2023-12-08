@@ -22,6 +22,7 @@ import { updateUserSchema } from "./schemas/updateUserSchema";
 import { postFeedbackSchema } from "./schemas/postFeedbackSchema";
 import { NullError } from "./utils/NullError";
 import { assertNull } from "./utils/assertNull";
+import randomColor from "randomcolor";
 
 declare global {
   namespace Express {
@@ -217,7 +218,7 @@ app.delete("/vote", protectedRoute, async (req, res) => {
 
 app.get("/me", protectedRoute, async (req, res) => {
   assertUserExists(req);
-  return res.json(prisma.users.findUnique({
+  return res.json(await prisma.users.findUnique({
     where: {
       id: req.user.id
     }

@@ -3,6 +3,7 @@ import passport from "passport";
 import { Profile, Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { EnvVars } from "../EnvVars";
 import prisma from "../prisma";
+import randomColor from "randomcolor";
 
 export const initPassport = (app: Express) => {
   app.use(passport.initialize());
@@ -20,7 +21,7 @@ export const initPassport = (app: Express) => {
       create: {
         email: profile._json.email!,
         name: profile.displayName,
-        color: "#FFF",
+        color: randomColor(),
       },
       update: {}
     });
