@@ -56,7 +56,7 @@ function assertUserExists(req: Request): asserts req is Request & { user: { id: 
 }
 
 // cursor pagination in the future
-app.get("/feedbacks", async (req, res) => {
+app.get("/feedbacks/:page", async (req, res) => {
   // https://medium.com/@aliammariraq/prisma-exclude-with-typesafety-8484ea6d0c42
   const feedbacks = await prisma.feedbacks.findMany({
     include: {
@@ -74,7 +74,9 @@ app.get("/feedbacks", async (req, res) => {
     },
     orderBy: {
       createdAt: "desc"
-    }
+    },
+    take: 20,
+    skip: 20 * +req.params.page
   });
   return res.json(
     feedbacks.map(feedback => {
@@ -248,8 +250,10 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   } else if (err instanceof NullError) {
     console.log(err)
     res.status(404).json(err.message)
-  } else
+  } else {
+    console.log(err)
     res.status(500).json("something went wrong.");
+  }
   return next();
 });
 
