@@ -25,7 +25,7 @@ import { assertNull } from "./utils/assertNull";
 
 declare global {
   namespace Express {
-    interface User {
+    export interface User {
       id: string;
     }
   }
@@ -37,15 +37,22 @@ initSession(app);
 initPassport(app);
 initJwt(app);
 const upload = multer({ storage: multer.memoryStorage() });
+const protectedRoute = passport.authenticate("jwt", { session: false });
 
-// this should be a post req
 app.get("/login", passport.authenticate("google", { scope: ['profile', 'email'] }));
 app.get("/login/callback",
   passport.authenticate("google", { session: true, keepSessionInfo: true }),
   async (req, res) => {
-    const id = req.user?.id!;
+    assertUserExists(req);
+    const id = req.user.id;
     return res.json(jsonwebtoken.sign({ id }, EnvVars.JWT_SECRET));
   });
+
+function assertUserExists(req: Request): asserts req is Request & { user: { id: string } } {
+  if (!req.user) {
+    throw "user is not defined"
+  }
+}
 
 // cursor pagination in the future
 app.get("/feedbacks", async (req, res) => {
@@ -76,11 +83,11 @@ app.get("/feedbacks", async (req, res) => {
   );
 });
 
-// validation with zod, only zod.
 app.post("/feedbacks", [
-  passport.authenticate("jwt", { session: false }),
+  protectedRoute,
   upload.single("attachment")
 ], async (req: Request, res: Response) => {
+  assertUserExists(req);
   const { title, description } = await zBodyParse(postFeedbackSchema, req);
   let fileUrl: string | undefined = undefined;
   if (req.file) {
@@ -106,7 +113,7 @@ app.post("/feedbacks", [
   }
   await prisma.feedbacks.create({
     data: {
-      userId: req.user?.id!,
+      userId: req.user.id,
       title,
       description,
       attachmentUrl: fileUrl,
@@ -115,7 +122,6 @@ app.post("/feedbacks", [
   return res.send("success");
 });
 
-// guard against the existence of the feedback
 app.get("/feedbacks/:feedbackId", async (req, res) => {
   const feedback = await prisma.feedbacks.findUnique({
     where: {
@@ -159,11 +165,12 @@ app.get("/feedbacks/:feedbackId", async (req, res) => {
   )
 });
 
-app.post("/comment", passport.authenticate("jwt", { session: true }), async (req, res) => {
+app.post("/comment", protectedRoute, async (req, res) => {
+  assertUserExists(req);
   const { feedbackId, content } = await zBodyParse(postCommentSchema, req);
   await prisma.comments.create({
     data: {
-      userId: req.user?.id!,
+      userId: req.user.id,
       feedbackId,
       content
     }
@@ -171,12 +178,13 @@ app.post("/comment", passport.authenticate("jwt", { session: true }), async (req
   return res.json("comment posted");
 });
 
-app.post("/vote", passport.authenticate("jwt", { session: true }), async (req, res) => {
+app.post("/vote", protectedRoute, async (req, res) => {
+  assertUserExists(req);
   const { feedbackId } = await zBodyParse(postVoteSchema, req);
   const alreadyVoted = await prisma.votes.findUnique({
     where: {
       userId_feedbackId: {
-        userId: req.user?.id!,
+        userId: req.user.id,
         feedbackId
       }
     }
@@ -186,19 +194,20 @@ app.post("/vote", passport.authenticate("jwt", { session: true }), async (req, r
   }
   await prisma.votes.create({
     data: {
-      userId: req.user?.id!,
+      userId: req.user.id,
       feedbackId
     }
   });
   return res.json("vote casted");
 });
 
-app.delete("/vote", passport.authenticate("jwt", { session: true }), async (req, res) => {
+app.delete("/vote", protectedRoute, async (req, res) => {
+  assertUserExists(req);
   const { feedbackId } = await zBodyParse(postVoteSchema, req);
   await prisma.votes.delete({
     where: {
       userId_feedbackId: {
-        userId: req.user?.id!,
+        userId: req.user.id,
         feedbackId
       }
     }
@@ -206,19 +215,21 @@ app.delete("/vote", passport.authenticate("jwt", { session: true }), async (req,
   return res.json("vote removed");
 });
 
-app.get("/me", passport.authenticate("jwt", { session: true }), async (req, res) => {
+app.get("/me", protectedRoute, async (req, res) => {
+  assertUserExists(req);
   return res.json(prisma.users.findUnique({
     where: {
-      id: req.user?.id!
+      id: req.user.id
     }
   }));
 });
 
-app.post("/me", passport.authenticate("jwt", { session: true }), async (req, res) => {
+app.post("/me", protectedRoute, async (req, res) => {
+  assertUserExists(req);
   const { name, color } = await zBodyParse(updateUserSchema, req);
   await prisma.users.update({
     where: {
-      id: req.user?.id!
+      id: req.user.id
     },
     data: {
       name,
