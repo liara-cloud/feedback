@@ -20,6 +20,8 @@ import { postCommentSchema } from "./schemas/postCommentSchema";
 import { postVoteSchema } from "./schemas/postVoteSchema";
 import { updateUserSchema } from "./schemas/updateUserSchema";
 import { postFeedbackSchema } from "./schemas/postFeedbackSchema";
+import { NullError } from "./utils/NullError";
+import { assertNull } from "./utils/assertNull";
 
 declare global {
   namespace Express {
@@ -146,7 +148,8 @@ app.get("/feedbacks/:feedbackId", async (req, res) => {
       }
     }
   });
-  const { comments: unExcludedComments, ...rest } = setCountKey(feedback!, "votes");
+  assertNull(feedback, "feedback not found");
+  const { comments: unExcludedComments, ...rest } = setCountKey(feedback, "votes");
   const comments = unExcludedComments.map(comment => exclude(comment, ["userId", "feedbackId"]))
   return res.json(
     {
@@ -170,7 +173,17 @@ app.post("/comment", passport.authenticate("jwt", { session: true }), async (req
 
 app.post("/vote", passport.authenticate("jwt", { session: true }), async (req, res) => {
   const { feedbackId } = await zBodyParse(postVoteSchema, req);
-  // check for uniqueness
+  const alreadyVoted = await prisma.votes.findUnique({
+    where: {
+      userId_feedbackId: {
+        userId: req.user?.id!,
+        feedbackId
+      }
+    }
+  });
+  if (alreadyVoted) {
+    return res.status(409).json("you have already voted");
+  }
   await prisma.votes.create({
     data: {
       userId: req.user?.id!,
@@ -178,6 +191,19 @@ app.post("/vote", passport.authenticate("jwt", { session: true }), async (req, r
     }
   });
   return res.json("vote casted");
+});
+
+app.delete("/vote", passport.authenticate("jwt", { session: true }), async (req, res) => {
+  const { feedbackId } = await zBodyParse(postVoteSchema, req);
+  await prisma.votes.delete({
+    where: {
+      userId_feedbackId: {
+        userId: req.user?.id!,
+        feedbackId
+      }
+    }
+  });
+  return res.json("vote removed");
 });
 
 app.get("/me", passport.authenticate("jwt", { session: true }), async (req, res) => {
@@ -207,6 +233,9 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     const firstError = err.errors[0];
     const { path, message } = firstError;
     res.status(400).json(`${path.join()}: ${message}.`);
+  } else if (err instanceof NullError) {
+    console.log(err)
+    res.status(404).json(err.message)
   } else
     res.status(500).json("something went wrong.");
   return next();
