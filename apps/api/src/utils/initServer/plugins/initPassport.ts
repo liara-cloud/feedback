@@ -1,8 +1,8 @@
 import { Express } from "express";
 import passport from "passport";
-import { Profile, Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { EnvVars } from "../EnvVars";
-import prisma from "../prisma";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { EnvVars } from "../../EnvVars";
+import prisma from "../../prisma";
 import randomColor from "randomcolor";
 
 export const initPassport = (app: Express) => {
@@ -35,4 +35,6 @@ export const initPassport = (app: Express) => {
   passport.deserializeUser((user, done) => {
     return done(null, user as { id: string });
   });
+  
+  return passport;
 };

@@ -1,5 +1,5 @@
 import { z } from "zod";
 
-export const getFeedbacksSchema = z.object({
+export const getAllFeedbacksSchema = z.object({
   page: z.number().min(1).default(1)
 });

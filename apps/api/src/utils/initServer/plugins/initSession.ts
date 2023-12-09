@@ -1,6 +1,6 @@
 import { Express } from "express";
 import expressSession from "express-session";
-import { EnvVars } from "../EnvVars";
+import { EnvVars } from "../../EnvVars";
 
 
 export const initSession = (app: Express) => {
