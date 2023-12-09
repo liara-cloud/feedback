@@ -23,6 +23,7 @@ import { postFeedbackSchema } from "./schemas/postFeedbackSchema";
 import { NullError } from "./utils/NullError";
 import { assertNull } from "./utils/assertNull";
 import randomColor from "randomcolor";
+import { getFeedbacksSchema } from "./schemas/getFeedbacksSchema";
 
 declare global {
   namespace Express {
@@ -55,8 +56,8 @@ function assertUserExists(req: Request): asserts req is Request & { user: { id: 
   }
 }
 
-// cursor pagination in the future
-app.get("/feedbacks/:page", async (req, res) => {
+app.get("/feedbacks", async (req, res) => {
+  const { page } = await zBodyParse(getFeedbacksSchema, req);
   // https://medium.com/@aliammariraq/prisma-exclude-with-typesafety-8484ea6d0c42
   const feedbacks = await prisma.feedbacks.findMany({
     include: {
@@ -76,7 +77,7 @@ app.get("/feedbacks/:page", async (req, res) => {
       createdAt: "desc"
     },
     take: 20,
-    skip: 20 * +req.params.page
+    skip: 20 * (page - 1)
   });
   return res.json(
     feedbacks.map(feedback => {
